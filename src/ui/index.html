@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>htmlpress — HTML to PDF</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-soft: #dbeafe;
+    --primary-glow: rgba(37,99,235,0.25);
+    --success: #10b981;
+    --success-soft: #d1fae5;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --bg: #0f172a;
+    --bg-elevated: #1e293b;
+    --bg-card: #1e293b;
+    --bg-input: #0f172a;
+    --border: #334155;
+    --border-hover: #475569;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-dim: #64748b;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-lg: 16px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.3);
+    --shadow-lg: 0 12px 48px rgba(0,0,0,0.4);
+    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes dropGlow {
+    0%, 100% { box-shadow: 0 0 0 0 var(--primary-glow); }
+    50% { box-shadow: 0 0 0 12px transparent; }
+  }
+
+  .animate-in { animation: fadeIn 0.4s ease-out both; }
+  .animate-slide { animation: slideUp 0.5s ease-out both; }
+
+  /* ── Header ── */
+  header {
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+    animation: slideDown 0.3s ease-out;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+  }
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--primary), #7c3aed);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #fff;
+    font-weight: 800;
+    transition: transform var(--transition);
+  }
+  .logo:hover .logo-icon { transform: rotate(-5deg) scale(1.05); }
+  .logo span { color: var(--text-dim); font-weight: 400; }
+
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px var(--primary-glow);
+  }
+  .btn-primary:hover {
+    background: var(--primary-hover);
+    box-shadow: 0 4px 16px var(--primary-glow);
+    transform: translateY(-1px);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover {
+    background: var(--bg-elevated);
+    border-color: var(--border-hover);
+    color: var(--text);
+  }
+
+  .btn-success {
+    background: var(--success);
+    color: #fff;
+  }
+  .btn-success:hover { background: #059669; transform: translateY(-1px); }
+
+  .btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  /* ── Main Layout ── */
+  main {
+    display: flex;
+    height: calc(100vh - 64px);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 320px;
+    min-width: 320px;
+    background: var(--bg-elevated);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  .panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: border-color var(--transition);
+    animation: slideUp 0.4s ease-out both;
+  }
+  .panel:nth-child(2) { animation-delay: 0.05s; }
+  .panel:nth-child(3) { animation-delay: 0.1s; }
+  .panel:nth-child(4) { animation-delay: 0.15s; }
+
+  .panel:hover { border-color: var(--border-hover); }
+
+  .panel-header {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-header-icon {
+    width: 28px;
+    height: 28px;
+    background: var(--primary-soft);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .panel-body { padding: 16px; }
+
+  /* ── Drop Zone ── */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+  .drop-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--primary-glow), transparent);
+    opacity: 0;
+    transition: opacity var(--transition);
+  }
+  .drop-zone:hover,
+  .drop-zone.drag-over {
+    border-color: var(--primary);
+    background: rgba(37,99,235,0.05);
+  }
+  .drop-zone:hover::before,
+  .drop-zone.drag-over::before { opacity: 1; }
+  .drop-zone.drag-over { animation: dropGlow 1.5s ease-in-out infinite; }
+
+  .drop-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    display: block;
+    transition: transform var(--transition);
+  }
+  .drop-zone:hover .drop-icon { transform: translateY(-3px); }
+  .drop-text { font-size: 13px; color: var(--text-muted); line-height: 1.6; position: relative; }
+  .drop-text strong { color: var(--primary); }
+
+  .file-input { display: none; }
+
+  /* ── File Select ── */
+  .file-select-wrap {
+    margin-top: 12px;
+    position: relative;
+  }
+
+  select, .input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    transition: all var(--transition);
+    outline: none;
+  }
+  select:hover, .input:hover { border-color: var(--border-hover); }
+  select:focus, .input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+  }
+
+  /* ── Settings Grid ── */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .settings-grid.full { grid-template-columns: 1fr; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+  }
+  .field .input { padding: 9px 12px; }
+
+  .input-with-unit {
+    position: relative;
+  }
+  .input-with-unit .input { padding-right: 36px; }
+  .input-unit {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 600;
+    pointer-events: none;
+  }
+
+  /* ── Margins Grid ── */
+  .margins-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .margin-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .margin-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    width: 14px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .margin-field .input {
+    padding: 8px 10px;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .link-margins {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0 0;
+  }
+
+  /* ── Toggle Switch ── */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+  }
+  .toggle-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toggle {
+    position: relative;
+    width: 44px;
+    height: 24px;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: var(--border);
+    border-radius: 24px;
+    transition: all var(--transition);
+  }
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: all var(--transition);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle input:checked + .toggle-track {
+    background: var(--primary);
+  }
+  .toggle input:checked + .toggle-track::after {
+    transform: translateX(20px);
+  }
+
+  /* ── Checkbox ── */
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-muted);
+    transition: color var(--transition);
+  }
+  .checkbox-row:hover { color: var(--text); }
+  .checkbox-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+
+  /* ── Preview Area ── */
+  .preview-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #0b1120;
+  }
+
+  .preview-tabs {
+    display: flex;
+    gap: 0;
+    padding: 12px 20px 0;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+  }
+  .preview-tab {
+    padding: 10px 24px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+  }
+  .preview-tab:hover { color: var(--text-muted); }
+  .preview-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+  .preview-tab .tab-badge {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .preview-tab .badge-html { background: var(--warning); }
+  .preview-tab .badge-pdf { background: var(--danger); }
+
+  .preview-content {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .preview-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #fff;
+    transition: opacity 0.3s ease;
+  }
+  .preview-frame.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* ── Loading Overlay ── */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15,23,42,0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .loading-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  .loading-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* ── Empty State ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    color: var(--text-dim);
+    animation: fadeIn 0.5s ease-out;
+  }
+  .empty-icon {
+    font-size: 48px;
+    opacity: 0.4;
+    animation: pulse 3s ease-in-out infinite;
+  }
+  .empty-text { font-size: 14px; font-weight: 500; }
+  .empty-hint { font-size: 12px; color: var(--text-dim); }
+
+  /* ── Toast ── */
+  .toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .toast {
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--danger); }
+  .toast.info { background: var(--primary); }
+
+  @keyframes fadeOut {
+    to { opacity: 0; transform: translateY(10px); }
+  }
+
+  /* ── Status Bar ── */
+  .status-bar {
+    height: 28px;
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    font-size: 11px;
+    color: var(--text-dim);
+    gap: 16px;
+  }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+  }
+  .status-dot.busy {
+    background: var(--warning);
+    animation: pulse 1s ease-in-out infinite;
+  }
+
+  /* ── Mobile Responsive ── */
+  .mobile-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px;
+  }
+
+  @media (max-width: 900px) {
+    .mobile-toggle { display: block; }
+    .btn-text { display: none; }
+
+    main { flex-direction: column; }
+
+    .sidebar {
+      position: fixed;
+      top: 64px;
+      left: 0;
+      bottom: 28px;
+      width: 100%;
+      min-width: auto;
+      z-index: 90;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: var(--bg);
+    }
+    .sidebar.open {
+      transform: translateX(0);
+    }
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      top: 64px;
+      background: rgba(0,0,0,0.5);
+      z-index: 89;
+    }
+    .sidebar-backdrop.open { display: block; }
+
+    .preview-area { height: calc(100vh - 64px - 28px); }
+
+    .header-actions .btn { padding: 10px 14px; }
+  }
+
+  @media (max-width: 480px) {
+    header { padding: 0 12px; height: 56px; }
+    .logo { font-size: 16px; }
+    .sidebar { top: 56px; padding: 12px; }
+    .preview-tabs { padding: 8px 12px 0; }
+    .preview-tab { padding: 8px 16px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">&lt;/&gt;</div>
+    htmlpress <span>converter</span>
+  </div>
+  <div class="header-actions">
+    <button class="mobile-toggle" id="menuToggle" onclick="toggleSidebar()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+    </button>
+    <button class="btn btn-ghost" id="btnSave" onclick="savePdf()" disabled>
+      <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z"/></svg>
+      <span class="btn-text">Guardar PDF</span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="sidebar-backdrop" id="backdrop" onclick="toggleSidebar()"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <!-- File Panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-header-icon">📂</div>
+        Archivo
+      </div>
+      <div class="panel-body">
+        <div class="drop-zone" id="dropZone">
+          <span class="drop-icon">📄</span>
+          <div class="drop-text">
+            Arrastra un archivo HTML aquí<br>
+            o <strong>haz clic para seleccionar</strong>
+          </div>
+          <input type="file" class="file-input" id="fileInput" accept=".html,.htm">
+        </div>
+        <div class="file-select-wrap">
+          <select id="fileSelect" onchange="onFileSelected()">
+            <option value="">Selecciona un archivo...</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page Settings -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-header-icon">📐</div>
+        Pagina
+      </div>
+      <div class="panel-body" style="display:flex;flex-direction:column;gap:12px;">
+        <div class="settings-grid full">
+          <div class="field">
+            <div class="field-label">Tamaño</div>
+            <select id="pageFormat" onchange="onFormatChange()">
+              <option value="A4">A4 — 210 × 297 mm</option>
+              <option value="A3">A3 — 297 × 420 mm</option>
+              <option value="Letter">Letter — 216 × 279 mm</option>
+              <option value="Legal">Legal — 216 × 356 mm</option>
+              <option value="Tabloid">Tabloid — 279 × 432 mm</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-grid" id="customSizeFields" style="display:none;">
+          <div class="field">
+            <div class="field-label">Ancho</div>
+            <div class="input-with-unit">
+              <input type="number" class="input" id="customWidth" value="210" min="50" onchange="schedulePreview()">
+              <span class="input-unit">mm</span>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">Alto</div>
+            <div class="input-with-unit">
+              <input type="number" class="input" id="customHeight" value="297" min="50" onchange="schedulePreview()">
+              <span class="input-unit">mm</span>
+            </div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">📜 Página única</div>
+          <label class="toggle">
+            <input type="checkbox" id="singlePage" onchange="schedulePreview()">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Margins -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-header-icon">↔️</div>
+        Márgenes
+      </div>
+      <div class="panel-body">
+        <div class="margins-grid">
+          <div class="margin-field">
+            <div class="margin-label">↑</div>
+            <div class="input-with-unit" style="flex:1">
+              <input type="number" class="input margin-input" id="marginTop" value="0" min="0" data-dir="top" onchange="onMarginChange(this)">
+              <span class="input-unit">mm</span>
+            </div>
+          </div>
+          <div class="margin-field">
+            <div class="margin-label">→</div>
+            <div class="input-with-unit" style="flex:1">
+              <input type="number" class="input margin-input" id="marginRight" value="0" min="0" data-dir="right" onchange="onMarginChange(this)">
+              <span class="input-unit">mm</span>
+            </div>
+          </div>
+          <div class="margin-field">
+            <div class="margin-label">↓</div>
+            <div class="input-with-unit" style="flex:1">
+              <input type="number" class="input margin-input" id="marginBottom" value="0" min="0" data-dir="bottom" onchange="onMarginChange(this)">
+              <span class="input-unit">mm</span>
+            </div>
+          </div>
+          <div class="margin-field">
+            <div class="margin-label">←</div>
+            <div class="input-with-unit" style="flex:1">
+              <input type="number" class="input margin-input" id="marginLeft" value="0" min="0" data-dir="left" onchange="onMarginChange(this)">
+              <span class="input-unit">mm</span>
+            </div>
+          </div>
+          <label class="link-margins checkbox-row">
+            <input type="checkbox" id="linkMargins" checked>
+            🔗 Vincular márgenes
+          </label>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="preview-area">
+    <div class="preview-tabs">
+      <button class="preview-tab active" data-tab="pdf" onclick="switchTab('pdf')">
+        PDF <span class="tab-badge badge-pdf"></span>
+      </button>
+      <button class="preview-tab" data-tab="html" onclick="switchTab('html')">
+        HTML <span class="tab-badge badge-html"></span>
+      </button>
+    </div>
+
+    <div class="preview-content" id="previewContent">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">📄</div>
+        <div class="empty-text">Selecciona o sube un archivo HTML</div>
+        <div class="empty-hint">La vista previa aparecerá aquí</div>
+      </div>
+
+      <iframe class="preview-frame hidden" id="htmlFrame"></iframe>
+      <iframe class="preview-frame hidden" id="pdfFrame"></iframe>
+
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Generando PDF...</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="status-bar">
+  <div class="status-dot" id="statusDot"></div>
+  <span id="statusText">Listo</span>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  // ── State ──
+  let currentFile = '';
+  let currentTab = 'pdf';
+  let previewTimeout = null;
+  let pdfBlobUrl = null;
+
+  // ── Elements ──
+  const fileSelect = document.getElementById('fileSelect');
+  const fileInput = document.getElementById('fileInput');
+  const dropZone = document.getElementById('dropZone');
+  const htmlFrame = document.getElementById('htmlFrame');
+  const pdfFrame = document.getElementById('pdfFrame');
+  const emptyState = document.getElementById('emptyState');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const btnSave = document.getElementById('btnSave');
+
+  // ── Init ──
+  loadFiles();
+
+  // ── File Management ──
+  async function loadFiles() {
+    const res = await fetch('/api/files');
+    const files = await res.json();
+    fileSelect.innerHTML = '<option value="">Selecciona un archivo...</option>';
+    files.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f;
+      opt.textContent = f;
+      fileSelect.appendChild(opt);
+    });
+    if (currentFile && files.includes(currentFile)) {
+      fileSelect.value = currentFile;
+    }
+  }
+
+  function onFileSelected() {
+    const file = fileSelect.value;
+    if (!file) return;
+    currentFile = file;
+    btnSave.disabled = false;
+    loadHtmlPreview();
+    schedulePreview();
+  }
+
+  // ── Drop Zone ──
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) uploadFile(file);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) uploadFile(fileInput.files[0]);
+  });
+
+  async function uploadFile(file) {
+    if (!file.name.match(/\.html?$/i)) {
+      toast('Solo se permiten archivos HTML', 'error');
+      return;
+    }
+    setStatus('busy', 'Subiendo archivo...');
+    const content = await file.text();
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, content }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      currentFile = data.filename;
+      await loadFiles();
+      fileSelect.value = currentFile;
+      btnSave.disabled = false;
+      toast('Archivo subido correctamente', 'success');
+      loadHtmlPreview();
+      schedulePreview();
+    } else {
+      toast('Error al subir archivo', 'error');
+    }
+    setStatus('ready', 'Listo');
+  }
+
+  // ── Previews ──
+  function loadHtmlPreview() {
+    if (!currentFile) return;
+    htmlFrame.src = `/preview/input/${encodeURIComponent(currentFile)}`;
+    emptyState.style.display = 'none';
+  }
+
+  function schedulePreview() {
+    if (!currentFile) return;
+    clearTimeout(previewTimeout);
+    previewTimeout = setTimeout(generatePdfPreview, 600);
+  }
+
+  async function generatePdfPreview() {
+    if (!currentFile) return;
+    setStatus('busy', 'Generando PDF...');
+    loadingOverlay.classList.add('visible');
+
+    try {
+      const settings = getSettings();
+      const res = await fetch('/api/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+
+      if (!res.ok) throw new Error('PDF generation failed');
+
+      const blob = await res.blob();
+      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+      pdfBlobUrl = URL.createObjectURL(blob);
+
+      pdfFrame.src = pdfBlobUrl;
+      emptyState.style.display = 'none';
+
+      if (currentTab === 'pdf') {
+        pdfFrame.classList.remove('hidden');
+        htmlFrame.classList.add('hidden');
+      }
+
+      setStatus('ready', 'PDF generado');
+      toast('Vista previa actualizada', 'info');
+    } catch (err) {
+      toast('Error al generar PDF', 'error');
+      setStatus('ready', 'Error');
+    } finally {
+      loadingOverlay.classList.remove('visible');
+    }
+  }
+
+  // ── Save / Download ──
+  async function savePdf() {
+    if (!currentFile) return;
+    setStatus('busy', 'Guardando PDF...');
+    loadingOverlay.classList.add('visible');
+
+    try {
+      const settings = getSettings();
+      const res = await fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+
+      if (!res.ok) throw new Error('Save failed');
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = currentFile.replace(/\.html?$/i, '.pdf');
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast('PDF guardado en output/ y descargado', 'success');
+    } catch (err) {
+      toast('Error al guardar PDF', 'error');
+    } finally {
+      loadingOverlay.classList.remove('visible');
+      setStatus('ready', 'Listo');
+    }
+  }
+
+  // ── Settings ──
+  function getSettings() {
+    const format = document.getElementById('pageFormat').value;
+    return {
+      file: currentFile,
+      format,
+      customWidth: format === 'custom' ? document.getElementById('customWidth').value + 'mm' : undefined,
+      customHeight: format === 'custom' ? document.getElementById('customHeight').value + 'mm' : undefined,
+      singlePage: document.getElementById('singlePage').checked,
+      margins: {
+        top: parseInt(document.getElementById('marginTop').value) || 0,
+        right: parseInt(document.getElementById('marginRight').value) || 0,
+        bottom: parseInt(document.getElementById('marginBottom').value) || 0,
+        left: parseInt(document.getElementById('marginLeft').value) || 0,
+      },
+    };
+  }
+
+  function onFormatChange() {
+    const format = document.getElementById('pageFormat').value;
+    document.getElementById('customSizeFields').style.display =
+      format === 'custom' ? 'grid' : 'none';
+    schedulePreview();
+  }
+
+  function onMarginChange(el) {
+    if (document.getElementById('linkMargins').checked) {
+      const val = el.value;
+      document.querySelectorAll('.margin-input').forEach(input => {
+        input.value = val;
+      });
+    }
+    schedulePreview();
+  }
+
+  // ── Tabs ──
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.preview-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.tab === tab);
+    });
+
+    if (tab === 'html') {
+      htmlFrame.classList.remove('hidden');
+      pdfFrame.classList.add('hidden');
+    } else {
+      pdfFrame.classList.remove('hidden');
+      htmlFrame.classList.add('hidden');
+    }
+
+    if (!currentFile) {
+      emptyState.style.display = 'flex';
+    }
+  }
+
+  // ── Mobile Sidebar ──
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('backdrop').classList.toggle('open');
+  }
+
+  // ── Status ──
+  function setStatus(state, text) {
+    statusDot.className = 'status-dot' + (state === 'busy' ? ' busy' : '');
+    statusText.textContent = text;
+  }
+
+  // ── Toast ──
+  function toast(message, type = 'info') {
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.innerHTML = `${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'} ${message}`;
+    document.getElementById('toastContainer').appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  }
+</script>
+</body>
+</html>

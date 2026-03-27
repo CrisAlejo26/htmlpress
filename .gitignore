@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+.claude/
 
 # Build output
 dist/
@@ -7,6 +8,7 @@ dist/
 # HTML input and PDF output directories
 input/
 output/
+assets/
 
 # Environment
 .env
@@ -17,6 +19,7 @@ output/
 .idea/
 *.swp
 *.swo
+claude.md
 
 # OS
 .DS_Store

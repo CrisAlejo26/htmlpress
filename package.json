@@ -7,6 +7,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
+    "dev:single": "tsx src/index.ts --single-page",
+    "ui": "tsx src/server.ts",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -23,7 +25,9 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^25.5.0",
+    "express": "^5.2.1",
     "puppeteer": "^24.40.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

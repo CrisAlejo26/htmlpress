@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 
 const INPUT_DIR = resolve('input');
 const OUTPUT_DIR = resolve('output');
+const singlePage = process.argv.includes('--single-page');
 
 async function ensureDirectories(): Promise<void> {
   if (!existsSync(INPUT_DIR)) {
@@ -34,20 +35,35 @@ async function convertHtmlToPdf(
   const page = await browser.newPage();
 
   try {
+    await page.setViewport({ width: 860, height: 1200 });
+
     const fileUrl = pathToFileURL(inputPath).href;
     await page.goto(fileUrl, { waitUntil: 'networkidle0' });
 
-    await page.pdf({
-      path: outputPath,
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '20mm',
-        right: '15mm',
-        bottom: '20mm',
-        left: '15mm',
-      },
-    });
+    if (singlePage) {
+      const contentHeight = await page.evaluate(() => {
+        const proposal = document.getElementById('proposal');
+        return proposal ? proposal.scrollHeight : document.body.scrollHeight;
+      });
+
+      // Add extra space to account for print layout differences
+      const safeHeight = Math.ceil(contentHeight * 1.05);
+
+      await page.pdf({
+        path: outputPath,
+        width: '210mm',
+        height: `${safeHeight}px`,
+        printBackground: true,
+        margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
+      });
+    } else {
+      await page.pdf({
+        path: outputPath,
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
+      });
+    }
 
     console.log(`  ${htmlFile} -> ${pdfName}`);
   } finally {
@@ -57,6 +73,10 @@ async function convertHtmlToPdf(
 
 async function main(): Promise<void> {
   console.log('htmlpress - HTML to PDF converter\n');
+
+  if (singlePage) {
+    console.log('Mode: single page\n');
+  }
 
   await ensureDirectories();
 
