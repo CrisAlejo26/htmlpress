@@ -109,6 +109,15 @@ curl -X POST http://localhost:3000/api/pdf \
 | `singlePage`   | `true` / `false`                                 | `false` |
 | `margins`      | Objeto con `top`, `right`, `bottom`, `left` (mm) | `0`     |
 
+## Creditos
+
+Desarrollado por **Cristian Alejandro Arroyave**.
+
+Construido con:
+- [Puppeteer](https://pptr.dev/) — renderizado y generacion de PDF
+- [Express](https://expressjs.com/) — servidor web para la interfaz
+- [TypeScript](https://www.typescriptlang.org/) — tipado estatico
+
 ## License
 
 MIT
